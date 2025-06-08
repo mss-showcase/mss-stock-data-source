@@ -25,14 +25,18 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
+        working-directory: src
         run: npm ci
 
       - name: Get version from package.json
+        working-directory: src
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Zip build artifact
+        working-directory: src
         run: zip -r mss-stock-data-source.zip .
 
       - name: Upload artifact to shared S3 bucket
+        working-directory: src
         run: aws s3 cp mss-stock-data-source.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/mss-stock-data-source.zip
