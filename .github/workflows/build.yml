@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
@@ -37,11 +42,6 @@ jobs:
         working-directory: src
         run: zip -r mss-stock-data-source.zip .
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
-          
       - name: Upload artifact to shared S3 bucket
         working-directory: src
         run: aws s3 cp mss-stock-data-source.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/mss-stock-data-source.zip
