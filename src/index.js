@@ -1,7 +1,7 @@
 // index.js
-const https = require('https');
-const zlib = require('zlib');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+import https from 'https';
+import zlib from 'zlib';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const apiKey = process.env.ALPHAVANTAGE_API_KEY;
 const dataBucket = process.env.SHARED_DATA_BUCKET;
@@ -14,7 +14,7 @@ const s3Client = new S3Client({ region });
 // This code fetches stock data for the specified tickers from Alpha Vantage,
 // compresses it using gzip, and uploads it to an S3 bucket.
 
-exports.handler = async function () {
+export const handler = async () => {
   try {
     const results = {};
 
