@@ -12,6 +12,7 @@ permissions:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   SHARED_BUILD_DATA_BUCKET: ${{ vars.SHARED_BUILD_DATA_BUCKET }}
+  MSS_STOCK_DATA_SOURCE_LAMBDA_NAME: ${{ vars.MSS_STOCK_DATA_SOURCE_LAMBDA_NAME }}
 
 jobs:
   build:
@@ -44,4 +45,4 @@ jobs:
 
       - name: Upload artifact to shared S3 bucket
         working-directory: src
-        run: aws s3 cp mss-stock-data-source.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/mss-stock-data-source.zip
+        run: aws s3 cp mss-stock-data-source.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/$MSS_STOCK_DATA_SOURCE_LAMBDA_NAME.zip
