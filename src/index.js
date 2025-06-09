@@ -4,7 +4,7 @@ const zlib = require('zlib');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 const apiKey = process.env.ALPHAVANTAGE_API_KEY;
-const s3Bucket = process.env.SHARED_BUILD_DATA_BUCKET;
+const dataBucket = process.env.SHARED_DATA_BUCKET;
 const region = process.env.AWS_REGION || 'eu-north-1';
 
 const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
@@ -29,7 +29,7 @@ exports.handler = async function () {
     const fileName = `magnificent7-${new Date().toISOString()}.json.gz`;
 
     const putCommand = new PutObjectCommand({
-      Bucket: s3Bucket,
+      Bucket: dataBucket,
       Key: fileName,
       Body: gzippedBuffer,
       ContentType: 'application/json',
@@ -38,7 +38,7 @@ exports.handler = async function () {
 
     await s3Client.send(putCommand);
 
-    console.log(`Uploaded ${fileName} to bucket ${s3Bucket}`);
+    console.log(`Uploaded ${fileName} to bucket ${dataBucket}`);
     return { statusCode: 200, body: `OK - ${fileName}` };
   } catch (err) {
     console.error('Error:', err);
