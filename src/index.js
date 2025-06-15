@@ -17,11 +17,27 @@ const s3Client = new S3Client({ region });
 export const handler = async () => {
   try {
     const results = {};
+    let totalTicks = 0;
 
     for (const symbol of tickers) {
-      const data = await fetchAlphaVantageData(symbol);
+      const { data, statusCode } = await fetchAlphaVantageData(symbol);
+
+      // Log non-2xx/3xx responses
+      if (!(statusCode >= 200 && statusCode < 400)) {
+        console.warn(`Alpha Vantage response for ${symbol}: HTTP ${statusCode}`);
+      }
+
       results[symbol] = data;
+
+      // Count tick data if present
+      const timeSeriesKey = Object.keys(data).find(k => k.startsWith('Time Series'));
+      if (timeSeriesKey && data[timeSeriesKey]) {
+        totalTicks += Object.keys(data[timeSeriesKey]).length;
+      }
     }
+
+    // Log aggregated tick count
+    console.log(`Aggregated tick data fetched: ${totalTicks}`);
 
     const jsonString = JSON.stringify(results);
     const gzippedBuffer = zlib.gzipSync(jsonString);
@@ -46,6 +62,7 @@ export const handler = async () => {
   }
 };
 
+// Modified to return both data and statusCode
 async function fetchAlphaVantageData(symbol) {
   const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=30min&symbol=${symbol}&apikey=${apiKey}`;
   return new Promise((resolve, reject) => {
@@ -55,7 +72,7 @@ async function fetchAlphaVantageData(symbol) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(raw);
-          resolve(parsed);
+          resolve({ data: parsed, statusCode: res.statusCode });
         } catch (e) {
           reject(e);
         }
