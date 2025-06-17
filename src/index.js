@@ -88,6 +88,9 @@ async function collectFundamentals() {
       results[symbol] = data;
     }
 
+    // Log the number of fundamentals collected
+    console.log(`Aggregated fundamentals fetched: ${Object.keys(results).length}`);
+
     const jsonString = JSON.stringify(results);
     const gzippedBuffer = zlib.gzipSync(jsonString);
 
