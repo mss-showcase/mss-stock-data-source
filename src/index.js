@@ -6,15 +6,25 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 const apiKey = process.env.ALPHAVANTAGE_API_KEY;
 const dataBucket = process.env.SHARED_DATA_BUCKET;
 const region = process.env.AWS_REGION || 'eu-north-1';
+const mode = process.env.RUN_MODE || "default";
 
 const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 
 const s3Client = new S3Client({ region });
 
-// This code fetches stock data for the specified tickers from Alpha Vantage,
-// compresses it using gzip, and uploads it to an S3 bucket.
+// Main Lambda handler
+export const handler = async (event) => {
+  if (mode === "fundamentals") {
+    await collectFundamentals();
+  } else if (mode === "ticks") {
+    await collectTicksData();
+  } else {
+    throw new Error(`Unknown RUN_MODE: ${mode}`);
+  }
+};
 
-export const handler = async () => {
+// Collects realtime stock data (original handler logic)
+async function collectTicksData() {
   try {
     const results = {};
     let totalTicks = 0;
@@ -42,7 +52,7 @@ export const handler = async () => {
     const jsonString = JSON.stringify(results);
     const gzippedBuffer = zlib.gzipSync(jsonString);
 
-    const fileName = `magnificent7-${new Date().toISOString()}.json.gz`;
+    const fileName = `magnificent7-ticks-${new Date().toISOString()}.json.gz`;
 
     const putCommand = new PutObjectCommand({
       Bucket: dataBucket,
@@ -60,11 +70,58 @@ export const handler = async () => {
     console.error('Error:', err);
     return { statusCode: 500, body: 'Internal Server Error' };
   }
-};
+}
 
-// Modified to return both data and statusCode
-async function fetchAlphaVantageData(symbol) {
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=30min&symbol=${symbol}&apikey=${apiKey}`;
+// Placeholder for fundamentals collection logic
+async function collectFundamentals() {
+  try {
+    const results = {};
+
+    for (const symbol of tickers) {
+      const { data, statusCode } = await fetchAlphaVantageData(symbol, "OVERVIEW");
+
+      // Log non-2xx/3xx responses
+      if (!(statusCode >= 200 && statusCode < 400)) {
+        console.warn(`Alpha Vantage OVERVIEW response for ${symbol}: HTTP ${statusCode}`);
+      }
+
+      results[symbol] = data;
+    }
+
+    const jsonString = JSON.stringify(results);
+    const gzippedBuffer = zlib.gzipSync(jsonString);
+
+    const fileName = `magnificent7-fundamentals-${new Date().toISOString()}.json.gz`;
+
+    const putCommand = new PutObjectCommand({
+      Bucket: dataBucket,
+      Key: fileName,
+      Body: gzippedBuffer,
+      ContentType: 'application/json',
+      ContentEncoding: 'gzip',
+    });
+
+    await s3Client.send(putCommand);
+
+    console.log(`Uploaded ${fileName} to bucket ${dataBucket}`);
+    return { statusCode: 200, body: `OK - ${fileName}` };
+  } catch (err) {
+    console.error('Error:', err);
+    return { statusCode: 500, body: 'Internal Server Error' };
+  }
+}
+
+// Helper to fetch Alpha Vantage data for different functions
+async function fetchAlphaVantageData(symbol, func = "TIME_SERIES_INTRADAY") {
+  let url;
+  if (func === "TIME_SERIES_INTRADAY") {
+    url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&interval=30min&symbol=${symbol}&apikey=${apiKey}`;
+  } else if (func === "OVERVIEW") {
+    url = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${apiKey}`;
+  } else {
+    throw new Error(`Unsupported Alpha Vantage function: ${func}`);
+  }
+
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let raw = '';

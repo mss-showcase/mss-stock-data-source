@@ -12,21 +12,21 @@ permissions:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   SHARED_BUILD_DATA_BUCKET: ${{ vars.SHARED_BUILD_DATA_BUCKET }}
-  MSS_STOCK_DATA_SOURCE_LAMBDA_NAME: ${{ vars.MSS_STOCK_DATA_SOURCE_LAMBDA_NAME }}
+  FILENAME_OF_STOCK_DATA_LAMBDAS_ON_S3_BUILD_BUCKET: ${{ vars.FILENAME_OF_STOCK_DATA_LAMBDAS_ON_S3_BUILD_BUCKET }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -41,8 +41,8 @@ jobs:
 
       - name: Zip build artifact
         working-directory: src
-        run: zip -r mss-stock-data-source.zip .
+        run: zip -r mss-stock-data-source-lambdas.zip .
 
       - name: Upload artifact to shared S3 bucket
         working-directory: src
-        run: aws s3 cp mss-stock-data-source.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/$MSS_STOCK_DATA_SOURCE_LAMBDA_NAME.zip
+        run: aws s3 cp mss-stock-data-source-lambdas.zip s3://$SHARED_BUILD_DATA_BUCKET/deploy/mss-stock-data-source/${{ steps.version.outputs.version }}/$FILENAME_OF_STOCK_DATA_LAMBDAS_ON_S3_BUILD_BUCKET.zip
